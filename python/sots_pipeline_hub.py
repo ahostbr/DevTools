@@ -1,29 +1,3 @@
-
-"""
-sots_pipeline_hub.py
---------------------
-Dedicated HUB for the **new SOTS DevTools pipeline**.
-
-This script is intentionally separated from the existing sots_tools.py so that
-all pipeline-related helpers live behind one clear menu.
-
-Menu options (all MANUAL actions):
-  1) Route inbox ([SOTS_DEVTOOLS] files) using inbox_router.py
-  2) Validate a single pack file using validate_sots_pack.py
-  3) Lint all packs in inbox using pack_linter.py
-  4) Generate a pack template using pack_template_generator.py
-  5) Show/update DevTools status dashboard using devtools_status_dashboard.py
-  6) Export a report bundle using report_bundle_exporter.py
-  7) Run log error digest using log_error_digest.py
-  0) Exit
-
-You can run this hub directly:
-    python sots_pipeline_hub.py
-
-Or call it from the legacy sots_tools.py via a menu entry that simply imports
-this module and calls main().
-"""
-
 import os
 import sys
 
@@ -34,6 +8,7 @@ import pack_linter
 import pack_template_generator
 import devtools_status_dashboard
 import report_bundle_exporter
+import devtools_selftest
 
 
 def debug_print(msg: str) -> None:
@@ -52,7 +27,7 @@ def ask(prompt: str, default: str | None = None) -> str:
 
 
 def menu_route_inbox():
-    debug_print("Selected: Route inbox (inbox_router)")
+    debug_print("Selected: Route inbox")
     inbox_dir = ask("Inbox directory", "chatgpt_inbox")
     dry = ask("Dry run? (y/n)", "n").lower().startswith("y")
     argv = ["--inbox-dir", inbox_dir]
@@ -63,13 +38,13 @@ def menu_route_inbox():
 
 
 def menu_validate_pack():
-    debug_print("Selected: Validate a single pack")
-    pack_path = ask("Pack file path (e.g. chatgpt_inbox/foo.txt)")
-    if not pack_path:
+    debug_print("Selected: Validate pack")
+    path = ask("Pack file path")
+    if not path:
         debug_print("No file specified; aborting.")
         return
-    project_root = ask("Project root for path checks (blank to skip)", os.getcwd())
-    argv = ["--file", pack_path]
+    project_root = ask("Project root (blank to skip)", os.getcwd())
+    argv = ["--file", path]
     if project_root:
         argv.extend(["--project-root", project_root])
     rc = validate_sots_pack.main(argv)
@@ -77,9 +52,9 @@ def menu_validate_pack():
 
 
 def menu_lint_packs():
-    debug_print("Selected: Lint all packs in inbox")
+    debug_print("Selected: Lint inbox packs")
     inbox_dir = ask("Inbox directory", "chatgpt_inbox")
-    project_root = ask("Project root for deeper checks (blank to skip)", os.getcwd())
+    project_root = ask("Project root (blank to skip)", os.getcwd())
     argv = ["--inbox-dir", inbox_dir]
     if project_root:
         argv.extend(["--project-root", project_root])
@@ -88,8 +63,8 @@ def menu_lint_packs():
 
 
 def menu_generate_template():
-    debug_print("Selected: Generate a pack template")
-    print("Available templates: tag_audit, omnitrace_sweep, kem_execution_audit")
+    debug_print("Selected: Generate pack template")
+    print("Templates: tag_audit, omnitrace_sweep, kem_execution_audit")
     template = ask("Template name", "tag_audit")
     output_dir = ask("Output directory", "chatgpt_inbox")
     argv = ["--template", template, "--output-dir", output_dir]
@@ -98,14 +73,22 @@ def menu_generate_template():
 
 
 def menu_status_dashboard():
-    debug_print("Selected: DevTools status dashboard / update")
+    debug_print("Selected: DevTools status dashboard/update")
     mode = ask("Mode (dashboard/update)", "dashboard").lower()
-    argv = []
     if mode == "update":
-        plugin = ask("Plugin name (e.g. SOTS_TagManager)")
+        plugin = ask("Plugin name")
         step = ask("Step ID (e.g. V2_11)")
         status = ask("Status (todo/in_progress/done)", "done")
-        argv = ["--mode", "update", "--plugin", plugin, "--step", step, "--status", status]
+        argv = [
+            "--mode",
+            "update",
+            "--plugin",
+            plugin,
+            "--step",
+            step,
+            "--status",
+            status,
+        ]
     else:
         argv = ["--mode", "dashboard"]
     rc = devtools_status_dashboard.main(argv)
@@ -113,14 +96,14 @@ def menu_status_dashboard():
 
 
 def menu_export_bundle():
-    debug_print("Selected: Export a report bundle")
-    category = ask("Category substring (e.g. tagmanager)")
+    debug_print("Selected: Export report bundle")
+    category = ask("Category substring")
     if not category:
         debug_print("No category specified; aborting.")
         return
-    sources_default = f"{os.path.join('DevTools','logs')} {os.path.join('DevTools','reports')}"
-    sources_raw = ask("Source dirs (space-separated)", sources_default)
-    sources = sources_raw.split()
+    default_sources = f"{os.path.join('DevTools','logs')} {os.path.join('DevTools','reports')}"
+    src_raw = ask("Source dirs (space-separated)", default_sources)
+    sources = src_raw.split()
     output_dir = ask("Output directory", os.path.join("DevTools", "exports"))
     max_lines = ask("Max lines per file", "400")
     try:
@@ -128,12 +111,7 @@ def menu_export_bundle():
     except ValueError:
         debug_print(f"Invalid max_lines '{max_lines}', using 400.")
         max_lines_int = 400
-
-    argv = [
-        "--category", category,
-        "--output-dir", output_dir,
-        "--max-lines", str(max_lines_int),
-    ]
+    argv = ["--category", category, "--output-dir", output_dir, "--max-lines", str(max_lines_int)]
     if sources:
         argv.extend(["--sources", *sources])
     rc = report_bundle_exporter.main(argv)
@@ -141,23 +119,36 @@ def menu_export_bundle():
 
 
 def menu_log_error_digest():
-    debug_print("Selected: Run log error digest")
+    debug_print("Selected: Log error digest")
     logs_dir = ask("Logs directory", os.path.join("Saved", "Logs"))
     limit = ask("How many recent log files?", "10")
     top = ask("How many top messages?", "10")
     argv = ["--logs-dir", logs_dir]
     try:
-        limit_int = int(limit)
-        argv.extend(["--limit", str(limit_int)])
+        argv.extend(["--limit", str(int(limit))])
     except ValueError:
         debug_print(f"Invalid limit '{limit}', using default.")
     try:
-        top_int = int(top)
-        argv.extend(["--top", str(top_int)])
+        argv.extend(["--top", str(int(top))])
     except ValueError:
         debug_print(f"Invalid top '{top}', using default.")
     rc = log_error_digest.main(argv)
     debug_print(f"log_error_digest exited with code {rc}")
+
+
+def menu_selftest():
+    debug_print("Selected: DevTools selftest (health check)")
+    mode = ask("Mode (compile/import)", "compile").lower()
+    if mode not in ("compile", "import"):
+        debug_print(f"Invalid mode '{mode}', defaulting to 'compile'.")
+        mode = "compile"
+    recursive_ans = ask("Scan subfolders recursively? (y/n)", "n").lower()
+    recursive = recursive_ans.startswith("y")
+    argv = ["--mode", mode]
+    if recursive:
+        argv.append("--recursive")
+    rc = devtools_selftest.main(argv)
+    debug_print(f"devtools_selftest exited with code {rc}")
 
 
 def main(argv=None):
@@ -172,9 +163,9 @@ def main(argv=None):
         print("  5) DevTools status dashboard / update")
         print("  6) Export a report bundle")
         print("  7) Run log error digest")
+        print("  8) Run DevTools selftest (health check)")
         print("  0) Exit")
         choice = input("Select an option: ").strip()
-
         if choice == "1":
             menu_route_inbox()
         elif choice == "2":
@@ -189,14 +180,15 @@ def main(argv=None):
             menu_export_bundle()
         elif choice == "7":
             menu_log_error_digest()
+        elif choice == "8":
+            menu_selftest()
         elif choice == "0":
             debug_print("Exiting SOTS Pipeline Hub.")
             break
         else:
-            print("Invalid choice. Please try again.")
-
+            print("Invalid choice. Try again.")
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())

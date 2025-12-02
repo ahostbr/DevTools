@@ -2,15 +2,19 @@
 """
 devtools_selftest.py
 --------------------
+
 Quick health check for the SOTS DevTools toolbox.
 
-It walks the DevTools/python directory, and for each .py file:
+It walks the DevTools/python directory (or a custom --python-dir), and for each
+`.py` file:
+
   - In --mode compile (default): compiles the source to bytecode to catch
     syntax errors.
-  - In --mode import: tries to import the module via importlib and reports
-    any exceptions (including missing dependencies, bad top-level code, etc).
+  - In --mode import: tries to import the module via importlib and reports any
+    exceptions (including missing dependencies, bad top-level code, etc).
 
 Results are:
+
   - Printed to stdout.
   - Written to DevTools/logs/devtools_selftest_YYYYMMDD_HHMMSS.log
 
@@ -23,22 +27,33 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import os
 import sys
 import traceback
 from datetime import datetime
 from pathlib import Path
-from typing import List, Tuple
-
+from typing import List, Tuple, Optional
 
 # ---------------------------------------------------------------------------
 # Path helpers
 # ---------------------------------------------------------------------------
 
 THIS_FILE = Path(__file__).resolve()
-TOOLS_ROOT = THIS_FILE.parent                      # .../DevTools/python
-PROJECT_ROOT = TOOLS_ROOT.parent.parent            # .../ShadowsAndShurikens
+TOOLS_ROOT = THIS_FILE.parent              # .../DevTools/python
+PROJECT_ROOT = TOOLS_ROOT.parent.parent    # .../ShadowsAndShurikens
+
 DEFAULT_PYTHON_DIR = TOOLS_ROOT
 DEFAULT_LOG_DIR = PROJECT_ROOT / "DevTools" / "logs"
+
+# Default excluded directory *names* for recursive scans.
+# These are simple directory-name checks, not full path patterns.
+DEFAULT_EXCLUDED_DIRS: List[str] = [
+    "__pycache__",
+    ".git",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".conda",  # local DevTools mini-env – usually not wanted for quick selftests
+]
 
 
 def debug_print(msg: str) -> None:
@@ -64,18 +79,51 @@ def write_log(log_dir: Path, lines: List[str]) -> Path:
 # Core checks
 # ---------------------------------------------------------------------------
 
-def discover_python_files(root: Path, recursive: bool) -> List[Path]:
+def discover_python_files(
+    root: Path,
+    recursive: bool,
+    excluded_dirs: Optional[List[str]] = None,
+) -> List[Path]:
+    """
+    Discover .py files under `root`.
+
+    - If recursive is False: just root/*.py.
+    - If recursive is True: walk with os.walk and skip any directory whose
+      *name* is in `excluded_dirs` (if provided).
+    """
+    files: List[Path] = []
+    excluded_names = set(excluded_dirs or [])
+
     if recursive:
-        return sorted(p for p in root.rglob("*.py") if p.is_file())
-    return sorted(p for p in root.glob("*.py") if p.is_file())
+        for dirpath, dirnames, filenames in os.walk(root):
+            # In-place filter so os.walk never descends into excluded dirs.
+            if excluded_names:
+                dirnames[:] = [
+                    d for d in dirnames
+                    if d not in excluded_names
+                ]
+
+            for filename in filenames:
+                if not filename.endswith(".py"):
+                    continue
+                p = Path(dirpath) / filename
+                if p.is_file():
+                    files.append(p)
+    else:
+        for p in root.glob("*.py"):
+            if p.is_file():
+                files.append(p)
+
+    return sorted(files)
 
 
 def check_compile(path: Path) -> Tuple[str, str]:
     """
-    Try to compile a module. Returns (status, detail):
+    Try to compile a module.
 
-    status: "OK" or "ERROR"
-    detail: message
+    Returns (status, detail):
+      status: "OK" or "ERROR"
+      detail: message
     """
     try:
         source = path.read_text(encoding="utf-8")
@@ -100,17 +148,17 @@ def module_name_for(path: Path, python_root: Path) -> str:
     """
     Produce a stable module-like name for importlib usage.
     """
-    rel = path.relative_to(python_root)
-    # e.g., "subdir/foo.py" -> "subdir.foo"
+    rel = path.relative_to(python_root)  # e.g., "subdir/foo.py"
     parts = list(rel.with_suffix("").parts)
     return "devtools_" + "_".join(parts)
 
 
 def check_import(path: Path, python_root: Path) -> Tuple[str, str]:
     """
-    Try to import a module from the given path. Returns (status, detail).
+    Try to import a module from the given path.
 
-    status: "OK", "WARN", or "ERROR"
+    Returns (status, detail):
+      status: "OK", "WARN", or "ERROR"
     """
     name = module_name_for(path, python_root)
 
@@ -118,6 +166,7 @@ def check_import(path: Path, python_root: Path) -> Tuple[str, str]:
         spec = importlib.util.spec_from_file_location(name, path)
         if spec is None or spec.loader is None:
             return "ERROR", "Could not create import spec/loader."
+
         mod = importlib.util.module_from_spec(spec)
 
         # Make sure the tools root is on sys.path so intra-DevTools imports work.
@@ -129,7 +178,7 @@ def check_import(path: Path, python_root: Path) -> Tuple[str, str]:
 
     except SystemExit as exc:
         code = exc.code
-        # If a module calls sys.exit(0) on import (bad style), we treat as WARN.
+        # If a module calls sys.exit(0) on import (bad style), treat as WARN.
         return "WARN", f"SystemExit({code}) raised during import (module may auto-exit on import)."
 
     except Exception as exc:
@@ -148,18 +197,42 @@ def run_selftest(
     recursive: bool,
     mode: str,
     log_dir: Path,
+    excluded_dirs: Optional[List[str]] = None,
 ) -> Tuple[List[str], int]:
     """
     Run the selftest and return (log_lines, num_errors).
     """
-    log_lines: List[str] = []
+    effective_excluded = list(excluded_dirs or [])
 
+    # Decide how to label the environment scope for the report.
+    if not recursive:
+        env_scope = "single-dir (non-recursive)"
+    else:
+        if ".conda" in effective_excluded:
+            env_scope = "devtools-only ('.conda' environment skipped)"
+        else:
+            env_scope = "full environment (no '.conda' exclusion)"
+
+    log_lines: List[str] = []
     log_lines.append("DEVTOOLS SELFTEST REPORT")
     log_lines.append("-" * 72)
     log_lines.append(f"Project root: {PROJECT_ROOT}")
-    log_lines.append(f"Python dir:  {python_dir}")
-    log_lines.append(f"Mode:        {mode}")
-    log_lines.append(f"Recursive:   {recursive}")
+    log_lines.append(f"Python dir: {python_dir}")
+    log_lines.append(f"Mode: {mode}")
+    log_lines.append(f"Recursive: {recursive}")
+    log_lines.append(f"Env scope: {env_scope}")
+
+    if recursive:
+        if effective_excluded:
+            log_lines.append(
+                "Excluded dirs (by name): "
+                + ", ".join(sorted(effective_excluded))
+            )
+        else:
+            log_lines.append("Excluded dirs (by name): (none)")
+    else:
+        log_lines.append("Excluded dirs: (n/a for non-recursive scan)")
+
     log_lines.append("")
 
     if not python_dir.is_dir():
@@ -167,7 +240,12 @@ def run_selftest(
         log_lines.append(msg)
         return log_lines, 1
 
-    files = discover_python_files(python_dir, recursive)
+    files = discover_python_files(
+        root=python_dir,
+        recursive=recursive,
+        excluded_dirs=effective_excluded if recursive else None,
+    )
+
     if not files:
         log_lines.append("No .py files found to test.")
         return log_lines, 0
@@ -185,6 +263,7 @@ def run_selftest(
             continue
 
         rel = path.relative_to(PROJECT_ROOT)
+
         if mode == "compile":
             status, detail = check_compile(path)
         else:
@@ -198,15 +277,26 @@ def run_selftest(
             num_errors += 1
 
         log_lines.append(f"[{status}] {rel}")
-        log_lines.append(f"    -> {detail}")
+        log_lines.append(f" -> {detail}")
+        log_lines.append("")
 
-    log_lines.append("")
     log_lines.append("SUMMARY")
     log_lines.append("-" * 72)
-    log_lines.append(f"OK:    {num_ok}")
-    log_lines.append(f"WARN:  {num_warns}")
+    log_lines.append(f"OK: {num_ok}")
+    log_lines.append(f"WARN: {num_warns}")
     log_lines.append(f"ERROR: {num_errors}")
     log_lines.append(f"TOTAL: {num_ok + num_warns + num_errors}")
+    log_lines.append(f"Env scope: {env_scope}")
+
+    if recursive:
+        if effective_excluded:
+            log_lines.append(
+                "Excluded dirs (by name): "
+                + ", ".join(sorted(effective_excluded))
+            )
+        else:
+            log_lines.append("Excluded dirs (by name): (none)")
+
     return log_lines, num_errors
 
 
@@ -214,6 +304,7 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         description="Run a health check over DevTools/python modules."
     )
+
     parser.add_argument(
         "--python-dir",
         type=str,
@@ -235,7 +326,25 @@ def main(argv=None) -> int:
         "--log-dir",
         type=str,
         default=str(DEFAULT_LOG_DIR),
-        help="Directory for selftest logs (default: <ProjectRoot>/DevTools/logs).",
+        help="Directory for selftest logs (default: /DevTools/logs).",
+    )
+    parser.add_argument(
+        "--exclude-dir",
+        action="append",
+        default=None,
+        help=(
+            "Directory name to exclude during recursive walk "
+            "(e.g. .conda, __pycache__). "
+            "May be passed multiple times."
+        ),
+    )
+    parser.add_argument(
+        "--no-default-excludes",
+        action="store_true",
+        help=(
+            "If set, do not apply DEFAULT_EXCLUDED_DIRS. "
+            "Use this if you want a full-environment run."
+        ),
     )
 
     args = parser.parse_args(argv)
@@ -243,16 +352,31 @@ def main(argv=None) -> int:
     python_dir = Path(args.python_dir).resolve()
     log_dir = Path(args.log_dir).resolve()
 
+    # Build the effective exclude list.
+    cli_excludes = list(args.exclude_dir or [])
+    if args.no_default_excludes:
+        excluded_dirs: List[str] = cli_excludes
+    else:
+        excluded_dirs = list(DEFAULT_EXCLUDED_DIRS)
+        for name in cli_excludes:
+            if name not in excluded_dirs:
+                excluded_dirs.append(name)
+
     debug_print(f"Python dir: {python_dir}")
-    debug_print(f"Mode:       {args.mode}")
-    debug_print(f"Recursive:  {args.recursive}")
-    debug_print(f"Log dir:    {log_dir}")
+    debug_print(f"Mode: {args.mode}")
+    debug_print(f"Recursive: {args.recursive}")
+    debug_print(f"Log dir: {log_dir}")
+    if args.recursive:
+        debug_print(f"Excluded dirs (by name): {excluded_dirs if excluded_dirs else '(none)'}")
+    else:
+        debug_print("Excluded dirs: (n/a for non-recursive scan)")
 
     lines, num_errors = run_selftest(
         python_dir=python_dir,
         recursive=args.recursive,
         mode=args.mode,
         log_dir=log_dir,
+        excluded_dirs=excluded_dirs if args.recursive else None,
     )
 
     # Print to console
