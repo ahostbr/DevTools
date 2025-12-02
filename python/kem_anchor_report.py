@@ -19,7 +19,7 @@ CONFIG_PATH = Path(__file__).resolve().parent / "sots_tools_config.json"
 ANCHOR_FILE_PATTERN = "*KEMExecutionAnchor*.h"
 REQUIRED_FIELDS = ["PositionTag", "ExecutionFamily", "PreferredExecutions", "UseRadius"]
 MAP_DISPLAY_LIMIT = 20
-HELPER_FUNCTION_PATTERN = re.compile(r"\b([A-Za-z_][A-Za-z_0-9]*(?:PositionTag|ExecutionFamily)[A-Za-z_0-9]*)\s*\()")
+HELPER_FUNCTION_PATTERN = re.compile(r"\b([A-Za-z_][A-Za-z_0-9]*(?:PositionTag|ExecutionFamily)[A-Za-z_0-9]*)\s*\(")
 
 
 def load_config() -> dict:

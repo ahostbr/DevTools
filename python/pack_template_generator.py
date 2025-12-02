@@ -1,26 +1,3 @@
-
-"""
-pack_template_generator.py
---------------------------
-Generates skeleton [SOTS_DEVTOOLS] pack files for common workflows so you
-don't have to hand-write headers every time.
-
-This script is **non-interactive by default** and is meant to be safe for
-both human use and VSCode Buddy use.
-
-Usage examples:
-    python pack_template_generator.py --template tag_audit
-    python pack_template_generator.py --template omnitrace_sweep --output-dir chatgpt_inbox/templates
-
-Templates:
-  - tag_audit
-  - omnitrace_sweep
-  - kem_execution_audit
-
-Files are written into --output-dir (default: chatgpt_inbox) with a
-timestamped name and a short description in the body.
-"""
-
 import argparse
 import os
 import sys
@@ -42,77 +19,70 @@ def write_file(path: str, lines) -> None:
             f.write(line.rstrip("\n") + "\n")
 
 
-def make_template(template: str) -> list[str]:
+def make_template(name: str):
     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    if template == "tag_audit":
+    if name == "tag_audit":
         return [
             "[SOTS_DEVTOOLS]",
+            "name: TagManager V2_11 – RequestGameplayTag scan",
             "tool: quick_search",
-            "scope: Plugins",
-            "subscope: SOTS_*",
-            "search: \"RequestGameplayTag(\"",
-            "exts: .cpp|.h",
+            "plugin: SOTS_TagManager",
             "category: tagmanager_audit",
             "mode: manual",
+            "scope: Plugins",
+            "wave: V2_TagManager_11",
             f"created: {ts}",
+            'search: "RequestGameplayTag("',
+            "exts: .cpp|.h",
             "[/SOTS_DEVTOOLS]",
             "",
-            "Body:",
-            "  TagManager V2 audit template.",
-            "  TODO: refine search filters, adjust scope and report paths as needed.",
+            "Body: TagManager V2 audit template for RequestGameplayTag usage.",
         ]
-    elif template == "omnitrace_sweep":
+    if name == "omnitrace_sweep":
         return [
             "[SOTS_DEVTOOLS]",
+            "name: OmniTrace V2 sweep – usage scan",
             "tool: quick_search",
-            "scope: Plugins",
-            "subscope: SOTS_*",
-            "search: \"OmniTrace\"",
-            "exts: .cpp|.h",
+            "plugin: SOTS_OmniTrace",
             "category: omnitrace_sweep",
             "mode: manual",
+            "scope: Plugins",
+            "wave: V2_OmniTrace_01",
             f"created: {ts}",
+            'search: "OmniTrace"',
+            "exts: .cpp|.h",
             "[/SOTS_DEVTOOLS]",
             "",
-            "Body:",
-            "  OmniTrace integration sweep template.",
-            "  TODO: refine search term(s) and report location.",
+            "Body: OmniTrace integration sweep template.",
         ]
-    elif template == "kem_execution_audit":
+    if name == "kem_execution_audit":
         return [
             "[SOTS_DEVTOOLS]",
+            "name: KEM V2 – Execution audit sweep",
             "tool: quick_search",
-            "scope: Plugins/SOTS_KillExecutionManager",
-            "search: \"Execution\"",
-            "exts: .cpp|.h",
+            "plugin: SOTS_KillExecutionManager",
             "category: kem_audit",
             "mode: manual",
+            "scope: Plugins/SOTS_KillExecutionManager",
+            "wave: V2_KEM_01",
             f"created: {ts}",
+            'search: "Execution"',
+            "exts: .cpp|.h",
             "[/SOTS_DEVTOOLS]",
             "",
-            "Body:",
-            "  KEM Execution audit template.",
-            "  TODO: refine search term(s) to match your current KEM naming.",
+            "Body: KEM Execution audit template.",
         ]
-    else:
-        raise ValueError(f"Unknown template: {template}")
+    raise ValueError(f"Unknown template: {name}")
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Generate skeleton [SOTS_DEVTOOLS] pack templates.")
+    parser = argparse.ArgumentParser(description="Generate [SOTS_DEVTOOLS] pack templates.")
     parser.add_argument(
         "--template",
         required=True,
         choices=["tag_audit", "omnitrace_sweep", "kem_execution_audit"],
-        help="Template name to generate.",
     )
-    parser.add_argument(
-        "--output-dir",
-        type=str,
-        default="chatgpt_inbox",
-        help="Directory to write the new pack into (default: chatgpt_inbox).",
-    )
-
+    parser.add_argument("--output-dir", type=str, default="chatgpt_inbox")
     args = parser.parse_args(argv)
 
     debug_print("Starting pack_template_generator")
@@ -120,20 +90,12 @@ def main(argv=None):
     debug_print(f"Output dir: {args.output_dir}")
 
     ensure_dir(args.output_dir)
-
     ts_name = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"{ts_name}_{args.template}.txt"
     path = os.path.join(args.output_dir, filename)
-
-    try:
-        lines = make_template(args.template)
-    except ValueError as exc:
-        debug_print(f"FATAL: {exc}")
-        return 1
-
+    lines = make_template(args.template)
     write_file(path, lines)
     debug_print(f"Template written to: {path}")
-
     return 0
 
 
