@@ -13,9 +13,9 @@ from flask import Flask, request, jsonify
 # ---------------------------------------------------------------------------
 
 THIS_FILE = Path(__file__).resolve()
-PYTHON_ROOT = THIS_FILE.parent                    # .../DevTools/python
-DEVTOOLS_ROOT = PYTHON_ROOT.parent               # .../DevTools
-PROJECT_ROOT = DEVTOOLS_ROOT.parent              # .../ShadowsAndShurikens
+PYTHON_ROOT = THIS_FILE.parent            # .../DevTools/python
+DEVTOOLS_ROOT = PYTHON_ROOT.parent        # .../DevTools
+PROJECT_ROOT = DEVTOOLS_ROOT.parent       # .../ShadowsAndShurikens
 
 INBOX_DIR = PYTHON_ROOT / "chatgpt_inbox"
 LOG_DIR = PYTHON_ROOT / "logs"
@@ -153,24 +153,37 @@ app = Flask(__name__)
 
 @app.route("/sots/run_prompt", methods=["POST"])
 def run_prompt() -> tuple:
+    """
+    Main entrypoint for ChatGPT → SOTS bridge.
+
+    Supports:
+      - Normal prompt files (last markdown, code blocks, etc.)
+      - open_file style actions coming from DevTools labels
+    """
     data = request.get_json(force=True, silent=True) or {}
 
     action = (data.get("action") or "").strip()
     label = (data.get("label") or "chatgpt_prompt").strip()
     meta = data.get("meta") or {}
 
-    # --- Special case: open_file actions from DevTools labels ---
-    if action == "open_file":
-        # Path is normally in meta["devtools_path"]
-        devtools_path = meta.get("devtools_path") or data.get("devtools_path", "")
-        bridge_log(f"Received open_file action for {devtools_path!r}")
+    # devtools_path may live in meta or at the top level
+    devtools_path = meta.get("devtools_path") or data.get("devtools_path", "")
+
+    bridge_log(
+        f"run_prompt: action={action!r}, label={label!r}, "
+        f"has_devtools_path={bool(devtools_path)}"
+    )
+
+    # --- Any request that looks like an open-file intent ---
+    if action == "open_file" or devtools_path:
+        bridge_log(f"Received open_file-style request for {devtools_path!r}")
         payload, status = handle_open_file(devtools_path)
         return jsonify(payload), status
 
     # --- Normal prompt path (last message, code blocks, etc.) ---
     prompt = (data.get("prompt") or "").rstrip()
     if not prompt:
-        bridge_log("Rejected request: empty prompt")
+        bridge_log(f"Rejected request: empty prompt (action={action!r})")
         return jsonify({"ok": False, "error": "empty prompt"}), 400
 
     bridge_log(f"Received prompt (label={label}, len={len(prompt)})")
@@ -189,5 +202,5 @@ def run_prompt() -> tuple:
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    bridge_log(f"SOTS DevTools Flask bridge starting on http://127.0.0.1:5050")
+    bridge_log("SOTS DevTools Flask bridge starting on http://127.0.0.1:5050")
     app.run(host="127.0.0.1", port=5050, debug=False)
