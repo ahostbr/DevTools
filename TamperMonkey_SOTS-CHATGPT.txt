@@ -1,0 +1,375 @@
+// ==UserScript==
+// @name         ChatGPT SOTS Bridge + Thoughts Saver + CodeBlock Sender
+// @namespace    https://ahostbr.plugins.sots
+// @version      1.6
+// @description  Save extended thinking, send last message or individual code blocks to SOTS DevTools bridge.
+// @match        https://chat.openai.com/*
+// @match        https://chatgpt.com/*
+// @grant        GM_xmlhttpRequest
+// @connect      127.0.0.1
+// @run-at       document-end
+// ==/UserScript==
+
+(function () {
+    'use strict';
+
+    // Selector for extended-thinking markdown blocks (right-side panel)
+    const THOUGHTS_SELECTOR =
+        'div._markdown_1frq2_10.text-token-text-secondary.text-\\[14px\\].leading-5.markdown.prose.dark\\:prose-invert.w-full.break-words.dark.markdown-new-styling';
+
+    const BRIDGE_URL = 'http://127.0.0.1:5050/sots/run_prompt';
+
+    let saveThoughtsButton = null;
+    let sendSotsButton = null;
+
+    // ---------- Thoughts capture (extended thinking panel) ----------
+
+    function getThoughtsElements() {
+        return Array.from(document.querySelectorAll(THOUGHTS_SELECTOR));
+    }
+
+    function elementIsVisible(el) {
+        if (!el) return false;
+        const style = getComputedStyle(el);
+        if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+            return false;
+        }
+        const rect = el.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+    }
+
+    function getVisibleThoughtsElements() {
+        return getThoughtsElements().filter(elementIsVisible);
+    }
+
+    function getThoughtsText() {
+        const visible = getVisibleThoughtsElements();
+        if (!visible.length) return '';
+        const parts = visible
+            .map((el) => el.innerText.trim())
+            .filter((t) => t.length > 0);
+        return parts.join('\n\n');
+    }
+
+    function isThoughtsPanelOpen() {
+        return getVisibleThoughtsElements().length > 0;
+    }
+
+    // ---------- Last message text for SOTS bridge ----------
+
+    function getLastAssistantMessageText() {
+        const nodes = document.querySelectorAll('.markdown-new-styling');
+        console.log('[SOTS Bridge] .markdown-new-styling count:', nodes.length);
+
+        if (!nodes.length) {
+            return '';
+        }
+
+        const last = nodes[nodes.length - 1];
+        const text = last.innerText.trim();
+        console.log('[SOTS Bridge] using last markdown block, length:', text.length);
+        return text;
+    }
+
+    // ---------- Save Thoughts -> .txt download ----------
+
+    function saveThoughtsToFile() {
+        const text = getThoughtsText();
+        if (!text) {
+            alert('No extended thinking text found. Is the panel open?');
+            return;
+        }
+
+        const now = new Date();
+        const iso = now.toISOString().replace(/[:.]/g, '-');
+
+        const headerLines = [
+            'ChatGPT thoughts transcript',
+            'Reason: Manual trigger (Save Thoughts button)',
+            `URL: ${location.href}`,
+            `Captured: ${now.toString()}`,
+            '',
+        ];
+
+        const fileContents = headerLines.join('\n') + text + '\n';
+        const blob = new Blob([fileContents], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `chatgpt_thoughts_${iso}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        console.log('[ThoughtSaver] Saved thoughts transcript');
+    }
+
+    // ---------- Send full last message to SOTS bridge ----------
+
+    function sendLastMessageToSots() {
+        const text = getLastAssistantMessageText();
+        if (!text) {
+            alert('Could not find last assistant message text.');
+            return;
+        }
+
+        GM_xmlhttpRequest({
+            method: 'POST',
+            url: BRIDGE_URL,
+            headers: { 'Content-Type': 'application/json' },
+            data: JSON.stringify({
+                prompt: text,
+                label: 'chatgpt_last_markdown',
+                meta: {
+                    url: location.href,
+                    type: 'full_message',
+                },
+            }),
+            onload: function (resp) {
+                console.log('[SOTS Bridge] Response:', resp.status, resp.responseText);
+                if (resp.status >= 200 && resp.status < 300) {
+                    alert('Sent last message markdown to SOTS DevTools bridge.');
+                } else {
+                    alert('Bridge responded with error. Check console/logs.');
+                }
+            },
+            onerror: function (err) {
+                console.error('[SOTS Bridge] Error:', err);
+                alert('Error talking to SOTS DevTools bridge. Is sots_bridge_server.py running?');
+            },
+        });
+    }
+
+    // ---------- Code-block helpers (per-copy-code button) ----------
+
+    function getCodeFromCopyButton(copyBtn) {
+        // Walk up until we find a container that has a <pre> in it.
+        let root = copyBtn.parentElement;
+        while (root && !root.querySelector('pre')) {
+            root = root.parentElement;
+        }
+        if (!root) {
+            console.warn('[SOTS Bridge] Could not find code container for copy button.');
+            return '';
+        }
+
+        const pre = root.querySelector('pre');
+        if (!pre) {
+            console.warn('[SOTS Bridge] No <pre> found under code container.');
+            return '';
+        }
+
+        return pre.innerText || '';
+    }
+
+    function sendCodeToSots(codeText, languageHint) {
+        if (!codeText) {
+            alert('Could not find code for this block.');
+            return;
+        }
+
+        GM_xmlhttpRequest({
+            method: 'POST',
+            url: BRIDGE_URL,
+            headers: { 'Content-Type': 'application/json' },
+            data: JSON.stringify({
+                prompt: codeText,
+                label: 'chatgpt_code_block',
+                meta: {
+                    url: location.href,
+                    type: 'code_block',
+                    language: languageHint || null,
+                },
+            }),
+            onload: function (resp) {
+                console.log('[SOTS Bridge] Code block response:', resp.status, resp.responseText);
+                if (resp.status >= 200 && resp.status < 300) {
+                    alert('Sent code block to SOTS DevTools bridge.');
+                } else {
+                    alert('Bridge responded with error for code block. Check console/logs.');
+                }
+            },
+            onerror: function (err) {
+                console.error('[SOTS Bridge] Error sending code block:', err);
+                alert('Error talking to SOTS DevTools bridge for code block.');
+            },
+        });
+    }
+
+    function attachSendSotsToCodeBlocks() {
+        // Target buttons that act as "Copy code"
+        const buttons = document.querySelectorAll('button[aria-label]');
+        buttons.forEach((btn) => {
+            const aria = (btn.getAttribute('aria-label') || '').toLowerCase();
+            const text = (btn.textContent || '').toLowerCase();
+
+            const looksLikeCopy =
+                aria.includes('copy code') ||
+                aria.includes('copy') && aria.includes('code') ||
+                text.includes('copy code');
+
+            if (!looksLikeCopy) return;
+
+            // Avoid re-hooking the same copy button
+            if (btn.dataset.sotsCodeHooked === '1') return;
+            btn.dataset.sotsCodeHooked = '1';
+
+            const container = btn.parentElement || btn;
+            const sendBtn = document.createElement('button');
+            sendBtn.type = 'button';
+            sendBtn.textContent = 'Send2SOTS';
+            sendBtn.className = btn.className; // mimic styling
+            sendBtn.style.marginLeft = '0.5rem';
+            sendBtn.dataset.sotsCodeButton = '1';
+
+            sendBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                // Grab language hint if present (e.g. "python" label)
+                let lang = null;
+                const maybeLabel = container.querySelector('span');
+                if (maybeLabel && maybeLabel.textContent) {
+                    lang = maybeLabel.textContent.trim();
+                }
+
+                const codeText = getCodeFromCopyButton(btn);
+                sendCodeToSots(codeText, lang);
+            });
+
+            container.appendChild(sendBtn);
+        });
+    }
+
+    // ---------- Find the bottom "More actions" (...) button ----------
+
+    function findMoreActionsButton() {
+        const buttons = document.querySelectorAll('button[aria-label]');
+        let lastMatch = null;
+
+        buttons.forEach((btn) => {
+            const label = (btn.getAttribute('aria-label') || '').toLowerCase();
+            if (label.includes('more actions')) {
+                lastMatch = btn; // keep overwriting so we end with the bottom-most one
+            }
+        });
+
+        return lastMatch;
+    }
+
+    // ---------- UI buttons ----------
+
+    function createSaveThoughtsButtonIfNeeded() {
+        if (!document.body || saveThoughtsButton) return;
+
+        const btn = document.createElement('button');
+        btn.id = 'cgpt-save-thoughts-btn';
+        btn.textContent = 'Save Thoughts';
+
+        Object.assign(btn.style, {
+            position: 'fixed',
+            top: '40%',
+            right: '24px',
+            transform: 'translateY(-50%)',
+            zIndex: '999999',
+            padding: '8px 12px',
+            borderRadius: '6px',
+            border: 'none',
+            background: '#10a37f',
+            color: '#ffffff',
+            fontSize: '12px',
+            fontFamily:
+                'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+            cursor: 'pointer',
+            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.25)',
+            opacity: '0.9',
+            display: 'none', // only when panel open
+        });
+
+        btn.addEventListener('mouseenter', () => (btn.style.opacity = '1'));
+        btn.addEventListener('mouseleave', () => (btn.style.opacity = '0.9'));
+        btn.addEventListener('click', saveThoughtsToFile);
+
+        document.body.appendChild(btn);
+        saveThoughtsButton = btn;
+    }
+
+    function attachSendSotsButtonToToolbar() {
+        const moreBtn = findMoreActionsButton();
+        if (!moreBtn || !moreBtn.parentElement) return;
+
+        const targetContainer = moreBtn.parentElement;
+
+        if (!sendSotsButton) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.textContent = 'Send2SOTS DevTools';
+
+            // Copy styling from the More actions button so it matches.
+            btn.className = moreBtn.className;
+            // Small spacing to the right of the ...
+            btn.style.marginLeft = '0.5rem';
+
+            btn.addEventListener('click', sendLastMessageToSots);
+
+            sendSotsButton = btn;
+        }
+
+        // If container changed (new bottom bar), move the button.
+        if (sendSotsButton.parentElement !== targetContainer) {
+            targetContainer.appendChild(sendSotsButton);
+        } else {
+            // Ensure our button stays at the end of that row.
+            if (sendSotsButton !== targetContainer.lastElementChild) {
+                targetContainer.appendChild(sendSotsButton);
+            }
+        }
+    }
+
+    function updateSaveThoughtsVisibility() {
+        if (!saveThoughtsButton) return;
+        saveThoughtsButton.style.display = isThoughtsPanelOpen() ? 'block' : 'none';
+    }
+
+    function addHotkeys() {
+        document.addEventListener(
+            'keydown',
+            (e) => {
+                if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 't') {
+                    e.preventDefault();
+                    saveThoughtsToFile();
+                }
+                if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'y') {
+                    e.preventDefault();
+                    sendLastMessageToSots();
+                }
+            },
+            true,
+        );
+    }
+
+    function init() {
+        console.log('[SOTS Bridge Userscript] Init');
+        createSaveThoughtsButtonIfNeeded();
+        attachSendSotsButtonToToolbar();
+        attachSendSotsToCodeBlocks();
+        addHotkeys();
+
+        // Periodically ensure buttons exist and are placed correctly
+        setInterval(() => {
+            createSaveThoughtsButtonIfNeeded();
+            attachSendSotsButtonToToolbar();     // bottom-bar full-message sender
+            updateSaveThoughtsVisibility();      // show/hide Save Thoughts
+            attachSendSotsToCodeBlocks();        // per-code-block Send2SOTS buttons
+        }, 1000);
+    }
+
+    const readyInterval = setInterval(() => {
+        if (document.readyState === 'complete' || document.body) {
+            clearInterval(readyInterval);
+            init();
+        }
+    }, 500);
+})();

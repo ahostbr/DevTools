@@ -1,0 +1,28 @@
+# Python cache + virtual envs
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# Logs & temp outputs
+*.log
+logs/
+output/
+tmp/
+.cache/
+
+# Zips / archives (generated packs, backups, etc.)
+*.zip
+*.7z
+*.rar
+
+# VSCode / editor stuff
+.vscode/
+.idea/
+*.code-workspace
+
+# OS junk
+Thumbs.db
+.DS_Store
+desktop.ini

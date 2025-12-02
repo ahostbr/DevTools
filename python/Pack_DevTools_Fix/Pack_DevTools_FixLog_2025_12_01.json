@@ -1,0 +1,65 @@
+{
+  "pack_name": "Pack_DevTools_FixLog_2025_12_01",
+  "pack_version": "1.0.0",
+  "status": "draft",
+  "description": "Fixes UE 5.7 compile errors in SOTS_KillExecutionManager, OmniTrace, and SOTS_GAS_Plugin based on 2025-12-01 build log.",
+  "created_by": "ChatGPT",
+  "created_at": "2025-12-01T02:00:00",
+  "operations": [
+    {
+      "id": "op_001",
+      "description": "Ensure CoreMinimal and ModuleManager are included in OmniTrace.cpp so DEFINE_LOG_CATEGORY(LogOmniTrace) compiles.",
+      "type": "insert_at_top",
+      "file": "Plugins/OmniTrace/Source/OmniTrace/Private/OmniTrace.cpp",
+      "text": "#include \"CoreMinimal.h\"\\n#include \"Modules/ModuleManager.h\"\\n\\n"
+    },
+    {
+      "id": "op_002",
+      "description": "Include KEM ExecutionDefinition header in SOTS_KEM_OmniTraceBridge.cpp so ESOTS_KEM_ExecutionFamily is visible.",
+      "type": "insert_after",
+      "file": "Plugins/SOTS_KillExecutionManager/Source/SOTS_KillExecutionManager/Private/SOTS_KEM_OmniTraceBridge.cpp",
+      "anchor": "#include \"SOTS_KEM_OmniTraceBridge.h\"",
+      "text": "\\n#include \"SOTS_KEM_ExecutionDefinition.h\""
+    },
+    {
+      "id": "op_003",
+      "description": "Cast away const on BestDef when broadcasting KEM executions so it matches the current delegate signatures.",
+      "type": "replace_in_file",
+      "file": "Plugins/SOTS_KillExecutionManager/Source/SOTS_KillExecutionManager/Private/SOTS_KEM_ManagerSubsystem.cpp",
+      "search": "BestDef,",
+      "replace": "const_cast<USOTS_KEM_ExecutionDefinition*>(BestDef),"
+    },
+    {
+      "id": "op_004",
+      "description": "Rename local StealthBridge helper in AbilityRequirementLibrary so it no longer conflicts with the helper in AbilityGatingLibrary when compiled in unity.",
+      "type": "replace_in_file",
+      "file": "Plugins/SOTS_GAS_Plugin/Source/SOTS_GAS_Plugin/Private/SOTS_GAS_AbilityRequirementLibrary.cpp",
+      "search": "static USOTS_GAS_StealthBridgeSubsystem* GetStealthBridge(const UObject* WorldContextObject)",
+      "replace": "static USOTS_GAS_StealthBridgeSubsystem* GetStealthBridge_Requirement(const UObject* WorldContextObject)"
+    },
+    {
+      "id": "op_005",
+      "description": "Update StealthBridge call site in AbilityRequirementLibrary to call the renamed helper.",
+      "type": "replace_in_file",
+      "file": "Plugins/SOTS_GAS_Plugin/Source/SOTS_GAS_Plugin/Private/SOTS_GAS_AbilityRequirementLibrary.cpp",
+      "search": "GetStealthBridge(WorldContextObject)",
+      "replace": "GetStealthBridge_Requirement(WorldContextObject)"
+    },
+    {
+      "id": "op_006",
+      "description": "Update StealthBridge call in DebugLibrary to route through a local helper specific to this file.",
+      "type": "replace_in_file",
+      "file": "Plugins/SOTS_GAS_Plugin/Source/SOTS_GAS_Plugin/Private/SOTS_GAS_DebugLibrary.cpp",
+      "search": "GetStealthBridge(WorldContextObject)",
+      "replace": "GetStealthBridge_Debug(WorldContextObject)"
+    },
+    {
+      "id": "op_007",
+      "description": "Add local StealthBridge resolver helper to DebugLibrary so GetStealthBridge_Debug is defined in this translation unit.",
+      "type": "insert_after",
+      "file": "Plugins/SOTS_GAS_Plugin/Source/SOTS_GAS_Plugin/Private/SOTS_GAS_DebugLibrary.cpp",
+      "anchor": "#include \"SOTS_GAS_DebugLibrary.h\"",
+      "text": "\\nnamespace\\n{\\n    static USOTS_GAS_StealthBridgeSubsystem* GetStealthBridge_Debug(const UObject* WorldContextObject)\\n    {\\n        if (!WorldContextObject)\\n        {\\n            return nullptr;\\n        }\\n\\n        UWorld* World = WorldContextObject->GetWorld();\\n        return World ? World->GetSubsystem<USOTS_GAS_StealthBridgeSubsystem>() : nullptr;\\n    }\\n}\\n"
+    }
+  ]
+}

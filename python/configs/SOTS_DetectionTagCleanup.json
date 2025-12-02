@@ -1,0 +1,25 @@
+{
+  "notes": "Purpose-built config to standardize legacy detection...eline; review the regexes carefully before running mass edits.",
+  "exts": [
+    ".h",
+    ".cpp",
+    ".ini"
+  ],
+  "patterns": [
+    {
+      "mode": "regex",
+      "find": "RequestGameplayTag\\(\\\"SAS\\.Stealth\\.Detection\\.(Alert|Detected)\\\"\\)",
+      "replace": "RequestGameplayTag(\"SAS.Stealth.Detection.Alerted\")"
+    },
+    {
+      "mode": "regex",
+      "find": "FGameplayTag::RequestGameplayTag\\(TEXT\\(\\\"SAS\\.Stealth\\.Detection\\.(Alert|Detected)\\\"\\)\\)",
+      "replace": "FGameplayTag::RequestGameplayTag(TEXT(\"SAS.Stealth.Detection.Alerted\"))"
+    },
+    {
+      "mode": "regex",
+      "find": "\\\"SAS\\.Stealth\\.Detection\\.(Alert|Detected|Seen)\\\"",
+      "replace": "\"SAS.Stealth.Detection.Alerted\""
+    }
+  ]
+}
