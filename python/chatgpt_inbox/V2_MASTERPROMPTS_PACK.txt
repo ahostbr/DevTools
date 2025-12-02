@@ -1,0 +1,569 @@
+SOTS – V2 MASTER PROMPT PACKS (ALL PLUGINS / BACKBONES)
+========================================================
+High-level roadmap of 25-step VSCode Buddy / DevTools passes
+for each core SOTS plugin & spine.
+
+PLUGINS / SPINES COVERED
+------------------------
+1.  SOTS_TagManager
+2.  OmniTrace
+3.  LightProbePlugin
+4.  StealthBackbone (GSM + PlayerStealth)
+5.  SOTS_AIPerception
+6.  SOTS_GAS (Ability Spine)
+7.  SOTS_SkillTree
+8.  SOTS_KillExecutionManager (KEM)
+9.  SOTS_MissionDirector
+10. SOTS_FX_Plugin
+11. SOTS_MMSS (Music / MMSS spine)
+12. SOTS_INV (Inventory Bridge)
+13. SOTS_Stats
+14. SOTS_ProfileShared
+15. SOTS_UI (HUD / Notifications / Waypoints)
+16. SOTS_PMS (Performance Monitor)
+17. SOTS_Steam
+18. SOTS_Debug
+
+
+========================================================
+1) SOTS_TagManager – V2_1–25 (Tag Spine)
+========================================================
+V2_1: Scan all code for gameplay tag usage and ad-hoc TMaps.
+V2_2: Enforce Tag Spine Law comments in TagManager headers.
+V2_3: Normalize USOTS_GameplayTagManagerSubsystem API (query, set, clear).
+V2_4: Implement USOTS_TagLibrary helpers for Blueprint-safe access.
+V2_5: Remove legacy “mini tag managers” and consolidate into TagManager.
+V2_6: Add config DataAsset for global tag categories and root schemas.
+V2_7: Wire GSM, AIPerception, KEM, MissionDirector to use TagManager APIs.
+V2_8: Add read-only query helpers for “global alert”, “mission flags”, “music roles”.
+V2_9: Implement helper for “ensure tag exists” to avoid typos / mismatches.
+V2_10: Integrate with ProfileShared for any persistent tag-based flags.
+V2_11: Add DevTools script to scan for direct RequestGameplayTag misuse.
+V2_12: Add DevTools script to dump all tags in use and group by namespace.
+V2_13: Introduce minimal logging hooks for tag mutations (debug builds only).
+V2_14: Ensure TagManager never depends on game module; plugins depend on it.
+V2_15: Add CVar / debug widget to visualize current critical global tags.
+V2_16: Standardize error handling when unknown tags are requested at runtime.
+V2_17: Add support for tag “sets” / masks (e.g. for roles, factions).
+V2_18: Document tag naming conventions and reserved roots (SAS., SOTS., etc.).
+V2_19: Create DevTools report mapping tags -> owning plugin / subsystem.
+V2_20: Remove all direct tag TMaps from other plugins; route through TagManager.
+V2_21: Add helper to broadcast tag changes to interested subsystems cleanly.
+V2_22: Expose compact Blueprint API for mission scripting and UI hooks.
+V2_23: Finalize TagManager unit tests / smoke tests for typical flows.
+V2_24: Clean up headers, includes, Build.cs dependencies for TagManager.
+V2_25: Tag plugin as Tag Spine stable; future work must respect its law.
+
+
+========================================================
+2) OmniTrace – V2_1–25 (Trace Spine)
+========================================================
+V2_1: Inventory all OmniTrace classes, presets, and debug helpers.
+V2_2: Formalize OmniTrace’s role as the only “fancy trace” library.
+V2_3: Clean public API: high-level trace presets (ledge, cover, kill, climbs).
+V2_4: Ensure DataAsset-driven presets are used everywhere, not hard-coded.
+V2_5: Integrate full debug visualization toggles via SOTS_Debug subsystem.
+V2_6: Replace scattered Blueprint trace spaghetti with OmniTrace presets.
+V2_7: Add specialized presets for KEM anchor finding (front/back/air kills).
+V2_8: Add presets for ParkourComponent (jumps, vaults, climbs, grapples).
+V2_9: Add presets for AIPerception support (LOS checks, hearing obstacles).
+V2_10: Add presets for MissionDirector triggers (zones, routes, “noisy” areas).
+V2_11: Implement caching / reuse where safe to avoid redundant traces.
+V2_12: Add DevTools script to scan for raw line traces and suggest OmniTrace.
+V2_13: Tag all presets with context tags (Stealth, KEM, Parkour, FX, etc.).
+V2_14: Ensure OmniTrace never depends on game module; only core engine + SOTS.
+V2_15: Add test map with buttons to run each preset and show its debug output.
+V2_16: Support both synchronous “one-shot” traces and small batched sweeps.
+V2_17: Add convenience wrappers for Blueprint-only usage (minimal params).
+V2_18: Integrate with ProfileShared only if persistent trace config is needed.
+V2_19: Document preset naming convention and how other plugins should extend.
+V2_20: Add guard rails to prevent heavy traces from running on Tick by accident.
+V2_21: Add logging hooks for “missing preset” or misconfigured DataAssets.
+V2_22: Provide sample presets tuned for SOTS default level sizes and scale.
+V2_23: Ensure OmniTrace is the only trace dependency for KEM executions.
+V2_24: Clean up Build.cs, includes, and remove unused legacy helpers.
+V2_25: Mark OmniTrace as “trace spine locked”; new work extends presets, not core.
+
+
+========================================================
+3) LightProbePlugin – V2_1–25 (Visibility Sampling)
+========================================================
+V2_1: Audit LightProbe actors/components and where they are referenced.
+V2_2: Clarify role: visibility sampling to feed GSM and PlayerStealth only.
+V2_3: Normalize API for sampling “light level” at player and AI positions.
+V2_4: Add config DataAsset for thresholds (shadow, dim, bright bands).
+V2_5: Integrate with GSM’s FSOTS_StealthScoringConfig for scoring modifiers.
+V2_6: Ensure PlayerStealthComponent asks LightProbe for visibility instead of duplicating.
+V2_7: Add support for cheap multi-sample averaging (head, shoulders, feet).
+V2_8: Add debug visualizers for probe volumes and last-sampled intensities.
+V2_9: Add DevTools script to scan levels for missing LightProbe coverage.
+V2_10: Provide Blueprint helpers for “IsInShadow”, “GetVisibilityBand”.
+V2_11: Ensure plugin does not talk to UAIPerception or TagManager directly.
+V2_12: Expose minimal hooks for KEM or FX if they need light-aware effects.
+V2_13: Optimize sampling frequency; move to timers instead of player Tick.
+V2_14: Support level-specific overrides via DataAssets per mission.
+V2_15: Add support for dynamic environment changes (torches, lights toggling).
+V2_16: Add CVar / debug menu toggles for LightProbe debugging.
+V2_17: Integrate with SOTS_PMS to profile cost of visibility sampling.
+V2_18: Document LightProbe lifecycle, placement rules, and authoring guidelines.
+V2_19: Ensure compatibility with Lumen and SOTS lighting strategy.
+V2_20: Provide test map showcasing shadow edges, rooftops, interiors.
+V2_21: Provide helper to precompute “safe spots” for AI patrol hints if needed.
+V2_22: Clean up any legacy reference to old shadow systems.
+V2_23: Finalize public headers and Build.cs dependencies.
+V2_24: Mark LightProbePlugin as stable source of visibility info.
+V2_25: Treat LightProbe as part of Stealth Spine; future work must integrate here.
+
+
+========================================================
+4) StealthBackbone – V2_1–25 (GSM + PlayerStealth)
+========================================================
+V2_1: Inventory USOTS_GlobalStealthManagerSubsystem + USOTS_PlayerStealthComponent.
+V2_2: Reassert Stealth Spine Law in comments and docs.
+V2_3: Normalize data model: FSOTS_StealthScoringConfig + USOTS_StealthConfigDataAsset.
+V2_4: Define clear APIs for reading stealth score, tier, and modifiers.
+V2_5: Integrate LightProbe visibility, AIPerception signals, and time-of-day.
+V2_6: Ensure PlayerStealth is the only owner of “current player stealth score”.
+V2_7: Have GSM aggregate per-AI detection into global alert tiers.
+V2_8: Wire Dragon/FX/MMSS to respond to stealth tier changes via TagManager.
+V2_9: Add decay rules for suspicion when out of sight and in deep shadow.
+V2_10: Ensure AIBT only reads detection tiers; never owns stealth logic.
+V2_11: Create DevTools script to log stealth score timeline in test encounters.
+V2_12: Add debug widget to show per-AI detection vs global tier in real time.
+V2_13: Integrate stealth state persistence into FSOTS_ProfileSnapshot slice.
+V2_14: Ensure stealth modifiers from gear, skills, items come via tags/data.
+V2_15: Add tuning CVars for quick iteration on stealth thresholds.
+V2_16: Provide test scenarios: bright courtyard, rooftops, indoors, heavy fog.
+V2_17: Ensure GSM is purely backend; no UI or audio directly from it.
+V2_18: Route all “stealth break” and “panic” events through MissionDirector hooks.
+V2_19: Have GSM expose read-only API for mission scripting and analytics.
+V2_20: Optimize update frequency; no heavy per-frame loops.
+V2_21: Clean up legacy stealth code from old CGF / sample projects.
+V2_22: Lock down API names to stay stable for SOTS lifetime.
+V2_23: Document StealthBackbone integration contracts for all plugins.
+V2_24: Final refactor pass to remove duplicated checks and magic numbers.
+V2_25: Mark Stealth Backbone as “shipping spec”; future tweaks are tuning only.
+
+
+========================================================
+5) SOTS_AIPerception – V2_1–25 (Perception Spine)
+========================================================
+V2_1: Scan all UAIPerception usage; classify in/outside SOTS_AIPerception.
+V2_2: Enforce Perception Spine Law in headers and comments.
+V2_3: Implement USOTS_AIPerceptionComponent as only perception component on AIs.
+V2_4: Implement USOTS_AIPerceptionSubsystem to aggregate and route events.
+V2_5: Normalize perception events (spotted, lost, suspicion changed).
+V2_6: Feed detection progress into GSM, not direct global tiers.
+V2_7: Use TagManager for per-AI/state tags (Alerted, Searching, etc.).
+V2_8: Integrate LightProbe and PlayerStealth modifiers into detection speed.
+V2_9: Create BT tasks/services using SOTS_AIPerception APIs, not UAIPerception directly.
+V2_10: Register noise stimuli from items/traps via a single SOTS noise helper.
+V2_11: Add DevTools aip_usage_scan.py to find illegal UAIPerception usage.
+V2_12: Add DevTools aip_event_trace.py to summarize perception events.
+V2_13: Add detection_curve_audit.py to visualize detection vs time curves.
+V2_14: Add aip_noise_map.py to analyze noise patterns in levels.
+V2_15: Provide debug visualization for LOS rays and last seen locations.
+V2_16: Ensure AIPerception never owns mission or stealth logic; only signals.
+V2_17: Integrate KEM body discovery events into AIPerception/GSM pipeline.
+V2_18: Provide read-only query API for MissionDirector: how many guards alerted?
+V2_19: Optimize sense setups and sight/hearing ranges for performance.
+V2_20: Clean all direct UAIPerception usage from other plugins.
+V2_21: Document perception tuning workflow for future balancing.
+V2_22: Add CVars to enable/disable certain senses for testing.
+V2_23: Finalize Build.cs and includes; no dependency on game module.
+V2_24: Mark SOTS_AIPerception as “perception spine locked”.
+V2_25: Require all future AI perception features to extend this plugin only.
+
+
+========================================================
+6) SOTS_GAS (Ability Spine) – V2_1–25
+========================================================
+V2_1: Inventory USOTS_AbilityRegistrySubsystem, UAC_SOTS_Abilitys, USOTS_AbilityBase.
+V2_2: Enforce SOTS_GAS Ability Spine Law in headers and docs.
+V2_3: Ensure AbilityRegistrySubsystem is only owner of ability definitions DataAssets.
+V2_4: Ensure UAC_SOTS_Abilitys is only owner of per-actor ability runtime state.
+V2_5: Normalize F_SOTS_AbilityDefinition and F_SOTS_AbilityRuntimeState schemas.
+V2_6: Ensure ability activation flows through a single tag-driven API.
+V2_7: Integrate ProfileShared via FSOTS_AbilityProfileData slice for persistence.
+V2_8: Integrate SkillTree: registry consults SkillTree for gating, not local flags.
+V2_9: Integrate Inventory: abilities can be granted/modified by items via tags.
+V2_10: Integrate Stats: some abilities scale using tag-based stat values.
+V2_11: Add DevTools scripts to enumerate all ability tags and definitions.
+V2_12: Add tooling to detect unused abilities or broken references.
+V2_13: Ensure all abilities are DataAsset-driven, not Blueprint-only definitions.
+V2_14: Add special ProjectileAbility base and shared projectile class hooks.
+V2_15: Wire GAS spine to StealthBackbone where relevant (stealth abilities, vanishes).
+V2_16: Ensure no AI abilities live here; plugin is player-only backend.
+V2_17: Provide Blueprint wrappers for high-level “ActivateAbilityByTag” etc.
+V2_18: Integrate with TagManager for ability on/off tags and cooldown tags.
+V2_19: Add clear error/validation for missing ability definitions at load.
+V2_20: Ensure no parallel save formats exist; everything uses AbilityProfileData.
+V2_21: Document ability design patterns and naming conventions.
+V2_22: Clean up Build.cs, include paths, and remove old GAS remnants.
+V2_23: Provide sample abilities for mobility, stealth, dragon, items.
+V2_24: Mark SOTS_GAS plugin as “ability spine locked”.
+V2_25: Require all future ability work to extend this spine and laws.
+
+
+========================================================
+7) SOTS_SkillTree – V2_1–25
+========================================================
+V2_1: Audit USOTS_SkillTreeSubsystem and related types/DataAssets.
+V2_2: Enforce SkillTree Spine Law in headers and docs.
+V2_3: Define FSOTS_SkillTreeProfileData in ProfileShared as only persistence slice.
+V2_4: Ensure SkillTreeSubsystem owns all progression state, not random flags.
+V2_5: Normalize node types (ability unlocks, stat boosts, utility, dragon unlocks).
+V2_6: Integrate with SOTS_GAS: ability activation checks consult SkillTree.
+V2_7: Integrate with Stats: some nodes modify tagged stat values.
+V2_8: Integrate with StealthBackbone: nodes can adjust stealth scoring config.
+V2_9: Provide Blueprint API for “IsNodeUnlocked”, “UnlockNode”, “GetNodeState”.
+V2_10: Add DevTools script to dump full tree layout and dependencies.
+V2_11: Add DevTools validation for cycles, orphan nodes, and bad references.
+V2_12: Integrate UI/HUD: surfaces progression in menus, not in gameplay logic.
+V2_13: Ensure tree configs are DataAsset-driven and mission-independent.
+V2_14: Add support for respec / new game+ rules if needed.
+V2_15: Ensure tree can be extended for DLC/expansions without breaking saves.
+V2_16: Wire MissionDirector: some missions might unlock new branches as rewards.
+V2_17: Ensure SkillTreeSubsystem has clean APIs for gating abilities/items.
+V2_18: Add debug commands to unlock full tree for test builds.
+V2_19: Integrate with Profile subsystem for load/save flows.
+V2_20: Clean Build.cs / includes, no dependency on game module.
+V2_21: Document skill tree philosophy and categories.
+V2_22: Provide sample trees for stealth, dragon, traversal.
+V2_23: Add CVars to override gating for cheat/debug.
+V2_24: Seal SkillTree as canonical progression spine.
+V2_25: Require new progression features to route through SkillTreeSubsystem.
+
+
+========================================================
+8) SOTS_KillExecutionManager (KEM) – V2_1–25
+========================================================
+V2_1: Scan current KEM plugin, Execution DataAssets, and anchor logic.
+V2_2: Reassert KEM rules (only triggered by interact/dragon/cutscenes).
+V2_3: Normalize Execution DataAsset schema as single source of truth.
+V2_4: Ensure OmniTrace handles anchor location finding for all execution types.
+V2_5: Integrate GSM Stealth gating (only allowed while undetected).
+V2_6: Integrate AIPerception: executions can raise suspicion or alert on failure.
+V2_7: Integrate FX plugin for all VFX/SFX hooks.
+V2_8: Integrate MMSS for music stingers on key executions.
+V2_9: Integrate MissionDirector: objectives advance based on execution metadata.
+V2_10: Add DevTools script to enumerate all Execution DAs and their references.
+V2_11: Add DevTools validation for missing animations/anchors/FX hooks.
+V2_12: Clean FHitResult / physics handling and collision channel usage.
+V2_13: Add debug visualizers for potential execution positions and paths.
+V2_14: Ensure KEM subsystem only exposes high-level “RequestExecution” API.
+V2_15: Cleanup of BP_SOTS_Player KEM nodes to use new C++ APIs.
+V2_16: Integrate ProfileShared if any execution history must persist.
+V2_17: Add tag-based filters (execution style, weapon, height) for mission logic.
+V2_18: Optimize trace usage via OmniTrace presets.
+V2_19: Document execution authoring workflow for new kill types.
+V2_20: Ensure no other system spawns executions directly; KEM owns that.
+V2_21: Finalize transitions for both ninja and dragon execution entry points.
+V2_22: Add CVars/debug tools to force specific execution paths for testing.
+V2_23: Clean Build.cs dependencies and headers.
+V2_24: Mark KEM as “execution spine stable”.
+V2_25: Treat any new execution work as DataAsset/FX extensions only.
+
+
+========================================================
+9) SOTS_MissionDirector – V2_1–25
+========================================================
+V2_1: Audit current MissionDirector code and any graph/editor integration.
+V2_2: Reassert Gas_Graph Isolation Law; decouple from old graph systems.
+V2_3: Define generic mission graph schema (objectives, branches, fail states).
+V2_4: Implement DataAsset-based mission graphs for reuse across levels.
+V2_5: Integrate TagManager for mission flags and route selection.
+V2_6: Integrate StealthBackbone for stealth-related mission conditions.
+V2_7: Integrate KEM for “assassination completed in specific way” checks.
+V2_8: Integrate AIPerception for alert/fail conditions.
+V2_9: Integrate MMSS for music role changes based on mission beats.
+V2_10: Integrate FX plugin for global cues, cinematics triggers.
+V2_11: Add DevTools script to validate graphs for broken links / missing nodes.
+V2_12: Add DevTools script to dump mission graph summaries for docs.
+V2_13: Provide Blueprint-friendly mission API (StartMission, AdvanceNode, FailNode).
+V2_14: Integrate with ProfileShared for mission progress persistence slice.
+V2_15: Ensure MissionDirector is stateless per run, relying on profile snapshot.
+V2_16: Provide debug UI showing current node, objectives, optional routes.
+V2_17: Support optional objectives and multiple approach routes per mission.
+V2_18: Ensure MissionDirector never owns combat or stealth logic; only orchestration.
+V2_19: Clean Build.cs; no dependency on editor-only modules in runtime.
+V2_20: Add hooks for cutscenes and scripted sequences.
+V2_21: Document mission design pattern for SOTS (2 main + 1 optional).
+V2_22: Add CVars to skip directly to mission nodes for testing.
+V2_23: Finalize mission result reporting to profiles and analytics.
+V2_24: Treat MissionDirector as canonical mission spine.
+V2_25: Future mission tools must extend this; no alternate mission stacks.
+
+
+========================================================
+10) SOTS_FX_Plugin – V2_1–25
+========================================================
+V2_1: Audit current FX code, Niagara systems, and audio hooks.
+V2_2: Define SOTS_FX_Plugin as only high-level FX/SFX orchestrator.
+V2_3: Implement tag-driven FX requests (contexts: Kill, StealthBreak, Alert).
+V2_4: Integrate MMSS and MetaSounds routing where appropriate.
+V2_5: Provide helper APIs for KEM, GSM, AIPerception, MissionDirector, UI.
+V2_6: Create DataAssets mapping tag contexts to Niagara/Sound assets.
+V2_7: Add DevTools script listing FX contexts and verifying referenced assets.
+V2_8: Route all “play sound / spawn FX” from gameplay through FX plugin.
+V2_9: Add debug UI to test FX contexts from editor.
+V2_10: Integrate ProfileShared only if any FX state must persist (rare).
+V2_11: Ensure FX plugin never contains core gameplay logic.
+V2_12: Optimize Niagara usage; pool common systems where possible.
+V2_13: Provide LOD/quality tiers, integrated with settings/profile.
+V2_14: Expose Blueprint calls for simple one-off FX needs.
+V2_15: Ensure FX respects Stealth; some FX only allowed while undetected.
+V2_16: Integrate with TagManager for global “FX mute / debug” tags.
+V2_17: Add per-level overrides via DataAssets for special missions.
+V2_18: Clean up unused legacy FX assets and references.
+V2_19: Document FX context taxonomy across SOTS systems.
+V2_20: Wire FX debugging into SOTS_Debug overlay.
+V2_21: Add CVars for global FX intensity tuning.
+V2_22: Finalize Build.cs and headers with minimal dependencies.
+V2_23: Mark SOTS_FX_Plugin as canonical FX spine.
+V2_24: Future visual polish must route through this plugin.
+V2_25: Keep FX spine data-driven and tag-driven, not procedural spaghetti.
+
+
+========================================================
+11) SOTS_MMSS – V2_1–25 (Music Spine)
+========================================================
+V2_1: Audit MMSS subsystem and current music handling.
+V2_2: Enforce MMSS Spine Law in headers and docs.
+V2_3: Define FSOTS_MMSSProfileData slice in ProfileShared.
+V2_4: Implement SAS.Music.* tag schema adherence and role usage.
+V2_5: Integrate GSM and MissionDirector to drive music roles.
+V2_6: Integrate TagManager for global music role tags.
+V2_7: Implement DataAssets for track lists per role and per mission.
+V2_8: Add DevTools script to list all music roles and assigned tracks.
+V2_9: Provide smooth fade/transition handling with curves.
+V2_10: Ensure MMSS is only owner of persistent music state and playback time.
+V2_11: Integrate FX plugin for stingers and transitions.
+V2_12: Provide Blueprint API for specific scripted music changes.
+V2_13: Ensure music decisions are data-driven, not hard-coded per level.
+V2_14: Add debug widget showing current role, track, and time.
+V2_15: Support special boss music schema (Intro, Loop, Phase2, Outro).
+V2_16: Optimize memory usage by streaming or chunking long tracks.
+V2_17: Add CVars to force roles for testing.
+V2_18: Clean up any direct sound-cue calls from gameplay code.
+V2_19: Document music authoring workflow and naming.
+V2_20: Validate all referenced assets exist and are in correct folders.
+V2_21: Finalize Build.cs, minimal dependencies.
+V2_22: Mark MMSS as canonical music system.
+V2_23: Require future music work to use roles + tags pattern.
+V2_24: Add profile migration hooks if schema changes.
+V2_25: Treat MMSS as part of Stealth/Mission emotional spine.
+
+
+========================================================
+12) SOTS_INV – V2_1–25 (Inventory Bridge)
+========================================================
+V2_1: Audit USOTS_InventoryBridgeSubsystem and InvSP integration.
+V2_2: Enforce Inventory Bridge Law in headers/docs.
+V2_3: Define FSOTS_InventoryProfileData in ProfileShared as only persistence.
+V2_4: Ensure all inventory persistence flows through bridge, not InvSP saves.
+V2_5: Mirror live InvSP inventories/quickslots into bridge caches.
+V2_6: Provide clean Blueprint API for item adds/removes/queries.
+V2_7: Integrate with SOTS_UI for Bamboo Scroll inventory views.
+V2_8: Integrate with SOTS_GAS (ability-granting items) using tags.
+V2_9: Integrate with SkillTree and Stats where items modify those.
+V2_10: Add DevTools script scanning for direct InvSP SaveGame usage.
+V2_11: Migrate old savegame_inventory1.sav usage into profile slices.
+V2_12: Add DevTools validator for item definitions and references.
+V2_13: Ensure inventory operations are tag-driven (item types, effects).
+V2_14: Implement item categories suitable for stealth game (tools, lures, etc.).
+V2_15: Add quick-select and limited in-combat usage rules via tags.
+V2_16: Optimize network of calls; no heavy loops each frame.
+V2_17: Document bridge responsibilities vs InvSP responsibilities.
+V2_18: Clean Build.cs and includes; no dependency on game module.
+V2_19: Ensure future items route through bridge logic only.
+V2_20: Integrate with Profile subsystem for robust load/save.
+V2_21: Add debug tools to spawn items and inspect bridge state.
+V2_22: Mark SOTS_INV as canonical inventory bridge.
+V2_23: Future inventory features must extend this, not InvSP directly.
+V2_24: Ensure ready for potential marketplace version separation.
+V2_25: Freeze core bridge APIs; change behavior via data/config.
+
+
+========================================================
+13) SOTS_Stats – V2_1–25
+========================================================
+V2_1: Audit USOTS_StatsComponent and any stats subsystem usage.
+V2_2: Enforce Stats Snapshot Law in headers/docs.
+V2_3: Ensure all stats are TMap<FGameplayTag, float> on StatsComponent.
+V2_4: Define FSOTS_CharacterStateData.StatValues mapping in ProfileShared.
+V2_5: Ensure Profile subsystem exclusively persists stats via snapshot.
+V2_6: Add helper APIs for reading/writing stats by tag (safe clamping).
+V2_7: Integrate with SkillTree: nodes modify stat tags via subsystem.
+V2_8: Integrate with SOTS_GAS: abilities query stats for scaling.
+V2_9: Integrate with Inventory: items affect stats via tags.
+V2_10: Integrate with StealthBackbone for stealth-related stats.
+V2_11: Add DevTools script to list all stat tags and their owners.
+V2_12: Add validator to find dead/unused stat tags.
+V2_13: Provide Blueprint-friendly “ModifyStatByPercent” and similar helpers.
+V2_14: Ensure no separate stat save files exist anywhere.
+V2_15: Add debug UI to inspect stats on player and key NPCs.
+V2_16: Add CVars for temporary stat buffs in test builds.
+V2_17: Document stat taxonomy: health, stamina, stealth, dragon, etc.
+V2_18: Clean up Build.cs / includes; maintain plugin independence.
+V2_19: Ensure StatsComponent is used only where needed (no bloat).
+V2_20: Integrate with Profile migration for schema changes.
+V2_21: Mark SOTS_Stats as canonical stats spine.
+V2_22: Require all new stat-like features to use this system.
+V2_23: Keep stat system pure backend; no UI logic here.
+V2_24: Coordinate with TagManager for stat-related tag roots.
+V2_25: Final polish pass to ensure performance and clarity.
+
+
+========================================================
+14) SOTS_ProfileShared – V2_1–25
+========================================================
+V2_1: Centralize all FSOTS_ProfileSnapshot and FSOTS_*ProfileData structs here.
+V2_2: Enforce Profile Shared Module Law in comments/docs.
+V2_3: Ensure game + plugins depend on SOTS_ProfileShared, not vice versa.
+V2_4: Normalize FSOTS_ProfileSnapshot layout (slices for all systems).
+V2_5: Define versioning scheme for snapshot and each slice.
+V2_6: Ensure each plugin has BuildProfileData/ApplyProfileData on its subsystem.
+V2_7: Integrate AbilityProfileData, InventoryProfileData, Stats, SkillTree, MMSS.
+V2_8: Integrate Stealth, MissionDirector, KEM, FX/MMSS slices as needed.
+V2_9: Add DevTools script to verify each slice has exactly one owner subsystem.
+V2_10: Add DevTools script to dump snapshot schema to JSON for docs.
+V2_11: Remove all legacy .sav paths in other plugins.
+V2_12: Integrate with ProfileSubsystem for global load/save orchestration.
+V2_13: Add migration helpers for old save formats.
+V2_14: Document how to add new slices properly.
+V2_15: Ensure Build.cs has no stray dependencies.
+V2_16: Provide small helper functions for common snapshot operations.
+V2_17: Coordinate with TagManager on which tags must be persisted.
+V2_18: Guard against partial/corrupted snapshot loads gracefully.
+V2_19: Integrate with DevTools to run “profile health check” pipeline.
+V2_20: Keep ProfileShared strictly data-only; no logic-heavy code.
+V2_21: Mark SOTS_ProfileShared as immutable backbone; only extend via new slices.
+V2_22: Document profile folder structure and gamesettings.sav relationship.
+V2_23: Ensure ready for multi-profile support and future expansions.
+V2_24: Confirm no plugin uses direct SaveGame files anymore.
+V2_25: Treat ProfileShared as the master spine for persistence.
+
+
+========================================================
+15) SOTS_UI – V2_1–25 (HUD / Notifications / Waypoints)
+========================================================
+V2_1: Audit USOTS_HUDSubsystem, USOTS_NotificationSubsystem, USOTS_WaypointSubsystem.
+V2_2: Enforce HUD Bridge Law and SOTS_UI Backend Law.
+V2_3: Ensure widgets and ProHUDV2 bind only to these subsystems.
+V2_4: Remove direct calls from gameplay systems to widgets.
+V2_5: Integrate TagManager and events for driving UI changes.
+V2_6: Integrate ProfileShared for settings/profile-dependent HUD config.
+V2_7: Integrate SOTS_PMS for performance overlays if applicable.
+V2_8: Integrate MMSS/FX for audio/visual feedback on notifications.
+V2_9: Provide Blueprint APIs for gameplay systems to request notifications.
+V2_10: Provide APIs for registering/removing world-space waypoints.
+V2_11: Add DevTools script to list all widget/back-end bindings.
+V2_12: Normalize naming and layout for main HUD elements.
+V2_13: Ensure push-pop UI stack is cleanly decoupled from game logic.
+V2_14: Integrate input identity/mapping to handle KBM vs gamepad.
+V2_15: Add debug UI to inspect queued notifications and waypoints.
+V2_16: Optimize tick usage; event-driven updates where possible.
+V2_17: Document UI layering and safe “pause overlay” rules.
+V2_18: Ensure SOTS_UI does not depend on third-party plugin internals.
+V2_19: Remove leftover ProHUDV2 compass/minimap hooks.
+V2_20: Provide sample bindings for stealth meter, dragon cues.
+V2_21: Finalize Build.cs and includes for SOTS_UI.
+V2_22: Prepare for potential separation of SOTS_UI into marketplace fork.
+V2_23: Mark SOTS_UI as canonical HUD/notification/waypoint spine.
+V2_24: Require any new UI system to route through these subsystems.
+V2_25: Keep UI backend minimal; complex visuals live only in widgets.
+
+
+========================================================
+16) SOTS_PMS – V2_1–25 (Performance Monitor)
+========================================================
+V2_1: Audit PMS plugin (metrics collection, overlay, NVAPI/RHI hooks).
+V2_2: Ensure clean separation between metrics gathering and UI display.
+V2_3: Normalize metric types (CPU, GPU, VRAM, frame time, etc.).
+V2_4: Integrate with SOTS_UI for in-game overlays if needed.
+V2_5: Ensure no hard dependency on SOTS gameplay plugins.
+V2_6: Add DevTools script for automated performance test runs/logs.
+V2_7: Provide Blueprint + C++ APIs to query metrics for debugging.
+V2_8: Optimize sampling frequency and overhead.
+V2_9: Integrate with logging to output per-level performance summaries.
+V2_10: Add preset configurations for dev vs player builds.
+V2_11: Ensure compatibility with different hardware (disable vendor-specific code gracefully).
+V2_12: Clean up legacy ADLX references; rely on allowed APIs only.
+V2_13: Provide config for per-feature opt-in metrics (AI, FX, UI).
+V2_14: Add debug UI toggles for overlay panels.
+V2_15: Integrate with DevTools to annotate logs with build/pipeline info.
+V2_16: Document PMS usage and how to interpret overlays.
+V2_17: Ensure plugin is safe for potential marketplace release.
+V2_18: Finalize Build.cs, includes, third-party libs structure.
+V2_19: Provide example QA workflow using PMS.
+V2_20: Make sure PMS respects frame budget; never becomes the bottleneck.
+V2_21: Add CVars for on-the-fly overlay control.
+V2_22: Integrate with automated test maps for perf baselines.
+V2_23: Mark PMS as canonical performance spine.
+V2_24: Future perf tooling should route through or extend PMS.
+V2_25: Keep PMS codebase clean, documented, and vendor-safe.
+
+
+========================================================
+17) SOTS_Steam – V2_1–25
+========================================================
+V2_1: Audit SOTS_SteamAchievementsSubsystem and any online hooks.
+V2_2: Ensure Steam integration is fully optional/toggled by settings.
+V2_3: Normalize interface to OnlineSubsystem and achievements API.
+V2_4: Define FSOTS_SteamProfileData slice if persistent Steam-related state needed.
+V2_5: Ensure local progression and Steam achievements stay in sync.
+V2_6: Add DevTools script to simulate achievement unlock flows offline.
+V2_7: Add DevTools script for verifying achievement IDs and names.
+V2_8: Integrate with MissionDirector, KEM, SkillTree, etc., for unlock criteria.
+V2_9: Provide Blueprint API for “SetAchievement” and “IndicateAchievementProgress”.
+V2_10: Handle error cases gracefully when Steam is unavailable.
+V2_11: Add logging helpers to debug online sync failures.
+V2_12: Integrate with SOTS_UI to show achievement toasts if desired.
+V2_13: Ensure no Steam-specific logic leaks into core gameplay plugins.
+V2_14: Clean Build.cs dependencies (OnlineSubsystem, OnlineSubsystemSteam).
+V2_15: Add test map or cheat commands for achievement testing.
+V2_16: Ensure not to spam Steam with repeated writes.
+V2_17: Support future platform-specific achievement systems via same spine.
+V2_18: Document Steam integration behavior and limitations.
+V2_19: Provide toggle to disable Steam entirely for offline builds.
+V2_20: Mark SOTS_Steam as canonical platform integration layer.
+V2_21: Prevent direct Steam API calls outside this plugin.
+V2_22: Add profile migration hooks if schema changes.
+V2_23: Prepare for possible marketplace-friendly fork with generic achievements.
+V2_24: Keep SOTS_Steam minimal and robust.
+V2_25: Treat it as thin bridge, not gameplay owner.
+
+
+========================================================
+18) SOTS_Debug – V2_1–25
+========================================================
+V2_1: Audit USOTS_SuiteDebugSubsystem and any debug visualizers.
+V2_2: Ensure SOTS_Debug is decoupled from gameplay plugins except via APIs.
+V2_3: Centralize debug toggles into single subsystem with CVars.
+V2_4: Integrate OmniTrace, AIPerception, GSM, FX, MMSS debug views.
+V2_5: Integrate PMS overlays if needed through SOTS_Debug hooks.
+V2_6: Add DevTools script to list all debug modes and hotkeys.
+V2_7: Provide Blueprint-friendly toggles for in-editor debugging.
+V2_8: Ensure debug-only code is compiled out in shipping builds where possible.
+V2_9: Create standard visual language (colors, icons) across debug tools.
+V2_10: Build anchor debug, stealth debug, perception debug, mission graph debug layers.
+V2_11: Keep debug calls light-weight and opt-in.
+V2_12: Document how designers/QA enable each debug mode.
+V2_13: Add log helpers for structured debug logs.
+V2_14: Integrate with TagManager for debug tags if needed.
+V2_15: Clean Build.cs / includes; no circular dependencies.
+V2_16: Ensure SOTS_Debug doesn’t mutate core game state except via approved APIs.
+V2_17: Support per-plugin registration of debug overlays.
+V2_18: Add debug categories for DevTools integration.
+V2_19: Provide sample “Debug Dashboard” widget if useful.
+V2_20: Validate that all major spines have debug hooks here.
+V2_21: Mark SOTS_Debug as canonical debug spine.
+V2_22: Keep it safe to strip or disable for performance testing.
+V2_23: Document what remains if SOTS_Debug is disabled.
+V2_24: Ensure compatibility with marketplace versions of plugins.
+V2_25: Treat SOTS_Debug as non-gameplay tooling; never required for core logic.
+
+========================================================
+END OF SOTS V2 MASTER PROMPT PACKS (ALL PLUGINS)
+========================================================
