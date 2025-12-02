@@ -130,5 +130,3 @@ SOTS_INV BRIDGE → pack for wiring into other systems.
 SOTS_INV TOOLS → pack for DevTools scripts/reports.
 
 SOTS_INV BUNDLE → pack for aggregator workflows (like Prompt 25).
-
-If you want, I can give you a tiny laws-file snippet that declares these PassTypes so they’re “canon,” but we can already start using the names right away.
