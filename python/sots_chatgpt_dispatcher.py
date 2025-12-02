@@ -87,6 +87,36 @@ def should_auto_dispatch(config: dict[str, str]) -> bool:
 # Tool runners
 # ---------------------------------------------------------------------------
 
+def run_write_files(config: dict[str, str], prompt_path: Path) -> None:
+    """Dispatch to write_files.py using the full prompt file as --source.
+
+    Expected header shape:
+
+        [SOTS_DEVTOOLS]
+        tool: write_files
+        mode: ...
+        [/SOTS_DEVTOOLS]
+
+    The write_files.py script will:
+      - Parse the body for FILE: ... / === END FILE === blocks
+      - Write those files under PROJECT_ROOT
+      - Log a summary in DevTools/python/logs/write_files_*.log
+    """
+    script = ROOT / "write_files.py"
+    if not script.is_file():
+        log(f"write_files.py not found at {script}")
+        return
+
+    cmd = [sys.executable, str(script), "--source", str(prompt_path)]
+    log(f"Launching write_files: {' '.join(cmd)}")
+
+    try:
+        subprocess.Popen(cmd, cwd=str(ROOT))
+    except Exception as e:
+        log(f"ERROR running write_files: {e}")
+
+
+
 def run_quick_search(config: dict[str, str]) -> None:
     """
     Dispatch to quick_search.py using 'search' and optional 'exts'.
@@ -202,7 +232,9 @@ def _dispatch_config(config: dict[str, str], prompt_path: Path, *, force: bool) 
     tool = config.get("tool", "").lower()
     log(f"Dispatching tool: {tool!r}, force={force}")
 
-    if tool == "quick_search":
+    if tool == "write_files":
+        run_write_files(config, prompt_path)
+    elif tool == "quick_search":
         run_quick_search(config)
     elif tool == "regex_replace":
         run_regex_replace(config)

@@ -1,7 +1,0 @@
-ChatGPT inbox file
-Label: chatgpt_code_block
-URL: https://chatgpt.com/g/g-p-692a52e132d48191884b9f1868e99825-sots-cgf-5-7-overhaul/c/692f1898-65c4-8330-aabb-5155b7796115
-Type: code_block
-text
-js
-const THOUGHTS_SELECTOR = ...
