@@ -1,0 +1,71 @@
+{
+    "Nodes": [
+        {
+            "Id": "BeginPlayEvent",
+            "NodeType": "K2Node_Event",
+            "FunctionPath": "/Script/Engine.Actor.ReceiveBeginPlay",
+            "NodePosition": { "X": -200, "Y": 0 },
+            "ExtraData": {
+                "CustomFunctionName": "ReceiveBeginPlay"
+            }
+        },
+        {
+            "Id": "PrintCall",
+            "NodeType": "K2Node_CallFunction",
+            "FunctionPath": "/Script/Engine.KismetSystemLibrary.PrintString",
+            "NodePosition": { "X": 200, "Y": 0 },
+            "ExtraData": {
+                "InString": "a"
+            }
+        },
+        {
+            "Id": "Loop",
+            "NodeType": "K2Node_ForLoop",
+            "NodePosition": { "X": 500, "Y": 0 },
+            "ExtraData": {
+                "FirstIndex": "0",
+                "LastIndex": "2"
+            }
+        },
+        {
+            "Id": "PrintYes",
+            "NodeType": "K2Node_CallFunction",
+            "FunctionPath": "/Script/Engine.KismetSystemLibrary.PrintString",
+            "NodePosition": { "X": 800, "Y": 0 },
+            "ExtraData": {
+                "InString": "yes"
+            }
+        },
+        {
+            "Id": "ResultNode",
+            "NodeType": "K2Node_FunctionResult",
+            "NodePosition": { "X": 500, "Y": 0 }
+        }
+    ],
+    "Links": [
+        {
+            "FromNodeId": "BeginPlayEvent",
+            "FromPinName": "Then",
+            "ToNodeId": "PrintCall",
+            "ToPinName": "Execute"
+        },
+        {
+            "FromNodeId": "PrintCall",
+            "FromPinName": "Then",
+            "ToNodeId": "Loop",
+            "ToPinName": "Execute"
+        },
+        {
+            "FromNodeId": "Loop",
+            "FromPinName": "LoopBody",
+            "ToNodeId": "PrintYes",
+            "ToPinName": "Execute"
+        },
+        {
+            "FromNodeId": "Loop",
+            "FromPinName": "Completed",
+            "ToNodeId": "ResultNode",
+            "ToPinName": "execute"
+        }
+    ]
+}

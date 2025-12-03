@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 from flask import Flask, request, jsonify
+from devtools_header_utils import HEADER_START, HEADER_END
 
 
 # ---------------------------------------------------------------------------
@@ -56,11 +57,27 @@ def sanitize_label(label: str) -> str:
 
 
 def store_prompt_to_inbox(prompt: str, label: str, meta: dict) -> Path:
-    """Write the prompt text to chatgpt_inbox as a timestamped .txt file."""
+    """Write the prompt text to chatgpt_inbox as a timestamped .txt file.
+
+    New behavior:
+    - If the prompt contains a [SOTS_DEVTOOLS] header, it goes to the root inbox.
+    - Otherwise it goes to a "no_header" subfolder under chatgpt_inbox.
+    """
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     safe_label = sanitize_label(label)
     filename = f"{ts}_{safe_label}.txt"
-    out_path = INBOX_DIR / filename
+
+    # Decide which subfolder to use based on header presence
+    has_header = (HEADER_START in prompt) and (HEADER_END in prompt)
+    if has_header:
+        base_dir = INBOX_DIR
+        classification = "devtools"
+    else:
+        base_dir = INBOX_DIR / "no_header"
+        classification = "no_header"
+
+    base_dir.mkdir(parents=True, exist_ok=True)
+    out_path = base_dir / filename
 
     header_lines = [
         "ChatGPT inbox file",
@@ -74,7 +91,7 @@ def store_prompt_to_inbox(prompt: str, label: str, meta: dict) -> Path:
         content += "\n"
 
     out_path.write_text(content, encoding="utf-8")
-    bridge_log(f"Stored prompt -> {out_path}")
+    bridge_log(f"Stored prompt ({classification}) -> {out_path}")
     return out_path
 
 
@@ -101,7 +118,7 @@ def handle_open_file(devtools_path: str) -> tuple[dict, int]:
     rel_part = norm.split("/", 1)[1] if "/" in norm else ""
     abs_path = DEVTOOLS_ROOT / rel_part
     exists = abs_path.exists()
-    bridge_log(f"open_file: {devtools_path} -> {abs_path} (exists={exists})")
+    bridge_log(f"open_file: resolved {devtools_path!r} -> {abs_path} (exists={exists})")
 
     if not exists:
         return {
@@ -120,27 +137,26 @@ def handle_open_file(devtools_path: str) -> tuple[dict, int]:
             break
         except FileNotFoundError:
             continue
-        except Exception as exc:  # pragma: no cover - defensive
-            err_msg = str(exc)
+        except Exception as e:
+            err_msg = str(e)
             break
 
-    if launched:
-        bridge_log(f"open_file: launched VS Code on {abs_path}")
+    if not launched:
+        bridge_log(
+            f"open_file: failed to launch VS Code for {abs_path} "
+            f"(err={err_msg!r})"
+        )
         return {
-            "ok": True,
-            "launched": True,
+            "ok": False,
+            "error": "VS Code CLI (code / code.cmd) not found or failed to launch.",
             "path": str(abs_path),
-        }, 200
+        }, 500
 
-    if err_msg:
-        bridge_log(f"open_file: failed to launch editor: {err_msg}")
-
-    # If we can't find 'code', still treat it as OK but report that we only logged.
+    bridge_log(f"open_file: launched VS Code for {abs_path}")
     return {
         "ok": True,
-        "launched": False,
+        "launched": True,
         "path": str(abs_path),
-        "note": "VS Code CLI not found; path logged only.",
     }, 200
 
 

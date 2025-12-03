@@ -1,0 +1,132 @@
+{
+  "JobId": "BPGEN_Sample_01",
+  "Function": {
+    "TargetBlueprintPath": "/Game/SOTS/Example/BP_SampleActor",
+    "FunctionName": "BPGen_ExampleFunction",
+    "Inputs": [
+      {
+        "Name": "bCondition",
+        "Category": "bool",
+        "SubCategory": "",
+        "SubObjectPath": "",
+        "ContainerType": "None",
+        "Direction": "Input"
+      }
+    ],
+    "Outputs": [
+      {
+        "Name": "ResultMessage",
+        "Category": "text",
+        "SubCategory": "",
+        "SubObjectPath": "",
+        "ContainerType": "None",
+        "Direction": "Output"
+      }
+    ]
+  },
+  "StructsToCreate": [
+    {
+      "AssetPath": "/Game/SOTS/Data/Structs/F_SOTS_BPGenExample",
+      "StructName": "F_SOTS_BPGenExample",
+      "Members": [
+        {
+          "Name": "ExampleInt",
+          "Category": "int",
+          "SubCategory": "",
+          "SubObjectPath": "",
+          "ContainerType": "None",
+          "Direction": "Input"
+        },
+        {
+          "Name": "ExampleText",
+          "Category": "text",
+          "SubCategory": "",
+          "SubObjectPath": "",
+          "ContainerType": "None",
+          "Direction": "Input"
+        }
+      ]
+    }
+  ],
+  "EnumsToCreate": [
+    {
+      "AssetPath": "/Game/SOTS/Data/Enums/E_SOTS_BPGenExample",
+      "EnumName": "E_SOTS_BPGenExample",
+      "Values": [
+        "Value_A",
+        "Value_B",
+        "Value_C"
+      ]
+    }
+  ],
+  "GraphSpec": {
+    "Nodes": [
+      {
+        "Id": "Entry",
+        "NodeType": "K2Node_FunctionEntry",
+        "FunctionPath": "",
+        "VariableName": "",
+        "NodePosition": {
+          "X": -400,
+          "Y": 0
+        }
+      },
+      {
+        "Id": "Branch",
+        "NodeType": "K2Node_Branch",
+        "FunctionPath": "",
+        "VariableName": "",
+        "NodePosition": {
+          "X": -100,
+          "Y": 0
+        }
+      },
+      {
+        "Id": "Print_True",
+        "NodeType": "K2Node_CallFunction",
+        "FunctionPath": "/Script/Engine.KismetSystemLibrary:PrintString",
+        "VariableName": "",
+        "NodePosition": {
+          "X": 200,
+          "Y": -80
+        }
+      },
+      {
+        "Id": "Print_False",
+        "NodeType": "K2Node_CallFunction",
+        "FunctionPath": "/Script/Engine.KismetSystemLibrary:PrintString",
+        "VariableName": "",
+        "NodePosition": {
+          "X": 200,
+          "Y": 80
+        }
+      }
+    ],
+    "Links": [
+      {
+        "FromNodeId": "Entry",
+        "FromPinName": "Then",
+        "ToNodeId": "Branch",
+        "ToPinName": "Exec"
+      },
+      {
+        "FromNodeId": "Entry",
+        "FromPinName": "bCondition",
+        "ToNodeId": "Branch",
+        "ToPinName": "Condition"
+      },
+      {
+        "FromNodeId": "Branch",
+        "FromPinName": "True",
+        "ToNodeId": "Print_True",
+        "ToPinName": "execute"
+      },
+      {
+        "FromNodeId": "Branch",
+        "FromPinName": "False",
+        "ToNodeId": "Print_False",
+        "ToPinName": "execute"
+      }
+    ]
+  }
+}

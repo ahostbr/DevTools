@@ -3,7 +3,7 @@
   "version": "1.2",
   "notes": "Central config for SOTS DevTools hub. Edit paths to match your machine.",
 
-  "build_command": "E:/UE_5.7p/UE_5.7/Engine/Build/BatchFiles/Build.bat ShadowsAndShurikensEditor Win64 Development",
+  "build_command": "E:/UE_5.7p/UE_5.7/Engine/Build/BatchFiles/Build.bat ShadowsAndShurikensEditor Win64 Development -project=\"E:/SAS/ShadowsAndShurikens/ShadowsAndShurikens.uproject\"",
 
   "generate_project_files_command": "E:/UE_5.7p/UE_5.7/Engine/Build/BatchFiles/GenerateProjectFiles.bat -project=\"E:/SAS/ShadowsAndShurikens/ShadowsAndShurikens.uproject\" -game -engine",
 

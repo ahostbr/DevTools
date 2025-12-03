@@ -1,0 +1,10 @@
+{
+    "Function": {
+        "TargetBlueprintPath": "/Game/DevTools/BP_PrintHello.BP_PrintHello",
+        "FunctionName": "PrintOnBeginPlay",
+        "Inputs": [],
+        "Outputs": []
+    },
+    "StructsToCreate": [],
+    "EnumsToCreate": []
+}

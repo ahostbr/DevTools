@@ -9,6 +9,8 @@ import re
 import sys
 from pathlib import Path
 
+from hud_widget_usage_check import find_violations as find_hud_widget_violations
+
 
 ROOT = Path(__file__).resolve().parents[2]
 PLUGINS = ROOT / "Plugins"
@@ -62,7 +64,15 @@ def main():
             print(f" - {fpath.relative_to(ROOT)}:{lineno} -> {line}")
         sys.exit(1)
 
+    hud_violations = find_hud_widget_violations()
+    if hud_violations:
+        print("[ERROR] HUD widget subsystem usage found outside Plugins/SOTS_UI:")
+        for fpath, lineno, label, line in hud_violations:
+            print(f" - {fpath.relative_to(ROOT)}:{lineno} ({label}) -> {line}")
+        sys.exit(1)
+
     print("[OK] No suspicious AddTag/RemoveTag usage found outside SOTS_TagManager.")
+    print("[OK] HUD and notification subsystems are touched only by Plugins/SOTS_UI.")
     print("CI checks passed.")
     sys.exit(0)
 
